@@ -74,6 +74,14 @@ add_custom_command(TARGET visualizer POST_BUILD
     ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/assets
 )
 
+# Add custom run target
+add_custom_target(run
+    COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/visualizer
+    DEPENDS visualizer
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    COMMENT "Running visualizer..."
+)
+
 # Print build information
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "C++ compiler: ${CMAKE_CXX_COMPILER}")
