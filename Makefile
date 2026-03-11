@@ -1,12 +1,12 @@
 CC = g++
 CFLAGS = `pkg-config --cflags sdl2` `pkg-config --cflags SDL2_image` `pkg-config --cflags SDL2_mixer`
 LDFLAGS = `pkg-config --libs sdl2` `pkg-config --libs SDL2_image` `pkg-config --libs SDL2_mixer` -lGL -lGLEW
-CXXFLAGS = -I./include -std=c++11
+CXXFLAGS = -I./include -std=c++17
 
 SRC_DIR = src
 BIN_DIR = bin
 
-SOURCES = main.cpp Camera.cpp Mesh.cpp Shader.cpp Texture.cpp FileLoader.cpp
+SOURCES = main.cpp Camera.cpp Mesh.cpp Shader.cpp Texture.cpp FileLoader.cpp CollisionShape.cpp CollisionSystem.cpp
 OBJECTS = $(addprefix $(BIN_DIR)/,$(SOURCES:.cpp=.o))
 
 TARGET = $(BIN_DIR)/gl3d

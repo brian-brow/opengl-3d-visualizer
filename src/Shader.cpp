@@ -17,11 +17,9 @@ GLuint Shader::compileShader(GLenum type, const char* source) {
 }
 
 Shader::Shader(const char* vertexSource, const char* fragmentSource) {
-    // Compile shaders
     GLuint vertexShader = compileShader(GL_VERTEX_SHADER, vertexSource);
     GLuint fragmentShader = compileShader(GL_FRAGMENT_SHADER, fragmentSource);
 
-    // Create shader program
     programID = glCreateProgram();
     glAttachShader(programID, vertexShader);
     glAttachShader(programID, fragmentShader);

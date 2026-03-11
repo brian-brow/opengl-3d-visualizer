@@ -3,7 +3,6 @@
 Mesh::Mesh(float* vertices, int vertSize, unsigned int* indices, int indSize) {
     indexCount = indSize / sizeof(unsigned int);
     
-    // This section from your main.cpp:
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
     glGenBuffers(1, &EBO);
@@ -37,13 +36,11 @@ Mesh::Mesh(float* vertices, int vertSize, unsigned int* indices, int indSize) {
 }
 
 void Mesh::draw() {
-    // This section from your main.cpp:
     glBindVertexArray(VAO);
     glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0);
 }
 
 Mesh::~Mesh() {
-    // Cleanup from your current code:
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
     glDeleteBuffers(1, &EBO);
