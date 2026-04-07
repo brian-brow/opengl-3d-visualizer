@@ -1,12 +1,91 @@
-A basic opengl based 3D visualizer. A work in progress for now but I plan to develop into a functional 3D engine.
-Currently just displays one large Utah Teapot surrounded by smaller teapots.
+# Assignment 3 – OpenGL Model Transform Viewer
 
-Controls:
-WASD to move the camera horizontally
-Left and Right arrow keys to rotate the teapots
-Spacebar to make the big one jump
+This program loads triangular meshes from `.obj` files and renders them using modern OpenGL.  
+Two models (Utah Teapot and Blender Monkey) are displayed and can be animated around a shared axis.
 
-Setup:
+--------------------------------------------------
 
-Arch Linux:
-sudo pacman -S --needed cmake sdl2 sdl2_image sdl2_mixer glew glm base-devel && mkdir -p build && cd build && cmake .. && make && ./bin/visualizer
+CONTROLS
+
+W / A / S / D
+Move the camera in the scene
+
+Mouse Movement
+Rotate the camera view
+
+Left / Right Arrow Keys
+Rotate the objects
+
+R
+Toggle animation that rotates the two objects around the axis between their centers
+
+--------------------------------------------------
+
+BUILD INSTRUCTIONS
+
+Dependencies (Arch Linux)
+
+Install required libraries:
+
+sudo pacman -S --needed base-devel sdl2 sdl2_image sdl2_mixer glew glm
+
+--------------------------------------------------
+
+COMPILE
+
+Run the following command in the project root directory:
+
+make
+
+This compiles the program and creates the executable:
+
+bin/gl3d
+
+--------------------------------------------------
+
+RUN THE PROGRAM
+
+After compiling, run:
+
+make run
+
+or directly:
+
+./bin/gl3d
+
+--------------------------------------------------
+
+PROJECT STRUCTURE
+
+include/
+    Camera.h
+    Mesh.h
+    Shader.h
+    Texture.h
+    FileLoader.h
+    
+src/
+    main.cpp
+    Camera.cpp
+    Mesh.cpp
+    Shader.cpp
+    Texture.cpp
+    FileLoader.cpp
+
+assets/
+    audio/
+    models/
+    shaders/
+    textures/
+
+bin/
+    (compiled executable)
+
+--------------------------------------------------
+
+NOTES
+
+- Mesh geometry is loaded from `.obj` files.
+- Rendering uses vertex and fragment shaders loaded from external files.
+- Each model has its own VAO, model matrix, and transformation pipeline.
+- Tested on Arch Linux with OpenGL 3.3 and SDL2.

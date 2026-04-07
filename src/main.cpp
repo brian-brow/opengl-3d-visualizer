@@ -15,8 +15,6 @@
 #include "Shader.h"
 #include "Texture.h"
 #include "FileLoader.h"
-#include "CollisionShape.h"
-#include "CollisionSystem.h"
 
 const char* readFile(const std::string& path, std::string& storage) {
     std::ifstream file(path);
@@ -34,6 +32,16 @@ const char* readFile(const std::string& path, std::string& storage) {
     return storage.c_str();
 }
 
+glm::mat4 rotateAroundAxisThroughPoint(const glm::vec3& pointOnAxis,
+                                       const glm::vec3& axis,
+                                       float angleDegrees) {
+    glm::mat4 transform = glm::mat4(1.0f);
+    transform = glm::translate(transform, pointOnAxis);
+    transform = glm::rotate(transform, glm::radians(angleDegrees), glm::normalize(axis));
+    transform = glm::translate(transform, -pointOnAxis);
+    return transform;
+}
+
 std::string vertexShaderStorage;
 std::string fragmentShaderStorage;
 
@@ -49,12 +57,7 @@ int main(int argc, char* argv[]) {
   const int SCREEN_WIDTH = 1200;
   const int SCREEN_HEIGHT = 900;
   FileLoader teapotFile("assets/models/utah_teapot.obj");
-  FileLoader cubeFile("assets/models/sphere.obj");
-
-  CollisionShape sphere1 = CollisionShape::CreateSphere(glm::vec3(0.0f, 0.0f, 0.0f), 1.0f);
-  CollisionShape sphere2 = CollisionShape::CreateSphere(glm::vec3(2.0f, 0.0f, 0.0f), 1.0f);
-  CollisionSystem collisionSystem;
-  std::cout << collisionSystem.checkCollision(sphere1, sphere2) << std::endl;
+  FileLoader monkeyFile("assets/models/blender_monkey.obj");
 
   // Initialize SDL
   if (SDL_Init(SDL_INIT_VIDEO) != 0) {
@@ -145,22 +148,30 @@ int main(int argc, char* argv[]) {
   std::vector<float> teapotVertices = teapotFile.getVertices();
   std::vector<unsigned int> teapotIndices = teapotFile.getIndices();
 
-  // Fetch Cube information from .obj file
-  std::vector<float> cubeVertices = cubeFile.getVertices();
-  std::vector<unsigned int> cubeIndices = cubeFile.getIndices();
-
+  std::vector<float> monkeyVertices = monkeyFile.getVertices();
+  std::vector<unsigned int> monkeyIndices = monkeyFile.getIndices();
 
   //Mesh triangle(triangleVertices, sizeof(triangleVertices), triangleIndices, sizeof(triangleIndices));
-  Mesh teapot(teapotVertices.data(), teapotVertices.size() * sizeof(float), (unsigned int*)teapotIndices.data(), teapotIndices.size() * sizeof(unsigned int));
+  Mesh teapot(
+      teapotVertices.data(),
+      teapotVertices.size() * sizeof(float),
+      (unsigned int*)teapotIndices.data(),
+      teapotIndices.size() * sizeof(unsigned int)
+  );
 
-  Mesh cube(cubeVertices.data(), cubeVertices.size() * sizeof(float), (unsigned int*)cubeIndices.data(), cubeIndices.size() * sizeof(unsigned int));
+  Mesh monkey(
+      monkeyVertices.data(),
+      monkeyVertices.size() * sizeof(float),
+      (unsigned int*)monkeyIndices.data(),
+      monkeyIndices.size() * sizeof(unsigned int)
+  );
 
   // Initialize teapot rotation angle and speed
   float rotationAngle = 0.0f;
   float rotationSpeed = 1.0f;
 
   // Initialize camera object
-  Camera camera(glm::vec3(0.0f, 3.0f, 3.0f));
+  Camera camera(glm::vec3(0.0f, 3.0f, 6.0f));
 
   // Command to allow capturing mouse movements
   SDL_SetRelativeMouseMode(SDL_TRUE);
@@ -175,23 +186,19 @@ int main(int argc, char* argv[]) {
   Uint64 lastTime = currentTime;
   double deltaTime = 0.0;
 
-  // Crude physics sim variables
-  bool jump = false;
-  float cP = 1.0f;
-  float cV = 0.0f;
-  bool teapotJump = false;
-  float tP = 0.0f;
-  float tV = 0.0f;
-  bool bounce = false;
-  float oP = 0.0f;
-  float oV = 0.0f;
-  float A = -10.0f;
+  bool animateObjects = false;
+  float orbitAngle = 0.0f;
+  float orbitSpeed = 50.0f;
 
   // Main loop
   while (running) {
     lastTime = currentTime;
     currentTime = SDL_GetPerformanceCounter();
     deltaTime = (double)((currentTime - lastTime) / (double)SDL_GetPerformanceFrequency());
+
+    if (animateObjects) {
+      orbitAngle += orbitSpeed * (float)deltaTime;
+    }
 
     while (SDL_PollEvent(&e)) {
       switch (e.type) {
@@ -202,28 +209,19 @@ int main(int argc, char* argv[]) {
           camera.rotate(e.motion.xrel, -e.motion.yrel);
           break;
         case SDL_KEYDOWN:
-          if (e.key.keysym.sym == SDLK_SPACE) {
-            cV = 5;
-            jump = true;
+          if (e.key.keysym.sym == SDLK_r) {
+            animateObjects = !animateObjects;
           }
           break;
         case SDL_MOUSEBUTTONDOWN:
           if (e.button.button == SDL_BUTTON_LEFT) {
             std::cout << "Left click at: " << e.button.x << ", " << e.button.y << std::endl;
-            tV = 5;
-            teapotJump = true;
-            // Do something on left click
           }
           if (e.button.button == SDL_BUTTON_RIGHT) {
             std::cout << "Right click!" << std::endl;
-            sphere2.setSphereCenter(glm::vec3(sphere2.getSphereCenter().x + 0.01f, sphere2.getSphereCenter().y, sphere2.getSphereCenter().z));
-            std::cout << collisionSystem.checkCollision(sphere1, sphere2) << std::endl;
-            // Do something on right click
           }
           if (e.button.button == SDL_BUTTON_MIDDLE) {
             std::cout << "Middle click!" << std::endl;
-            sphere2.setSphereCenter(glm::vec3(sphere2.getSphereCenter().x - 0.01f, sphere2.getSphereCenter().y, sphere2.getSphereCenter().z));
-            std::cout << collisionSystem.checkCollision(sphere1, sphere2) << std::endl;
           }
           break;
         default:
@@ -255,116 +253,60 @@ int main(int argc, char* argv[]) {
 
     // Create projection matrix (perspective)
     glm::mat4 projection = glm::perspective(
-        glm::radians(70.0f),    // Field of view
-        (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT,       // Aspect ratio
-        0.1f,                   // Near plane
-        100.0f                  // Far plane
-        );
+        glm::radians(70.0f),
+        (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT,
+        0.1f,
+        100.0f
+    );
 
     // Create view matrix (move camera back so we can see the triangle)
     glm::mat4 view = camera.getViewMatrix();
 
-    // Draw 10 teapots in a circle
-    for (int i = 0; i < 10; i++) {
-      float angle = (float)i / 10.0f * 360.0f;
-      float x = cos(glm::radians(angle)) * 2.0f;
-      float z = sin(glm::radians(angle)) * 2.0f;
+    glm::vec3 teapotCenter(-1.5f, 0.0f, 0.0f);
+    glm::vec3 monkeyCenter(1.5f, 0.0f, 0.0f);
 
-      glm::mat4 model = glm::mat4(1.0f);
-      model = glm::translate(model, glm::vec3(x, oP, z));
-      model = glm::rotate(model, glm::radians(rotationAngle + angle), glm::vec3(0.0f, 1.0f, 0.0f));
-      model = glm::scale(model, glm::vec3(0.1f, 0.1f, 0.1f));  // Make them smaller
+    // Vertical axis halfway between the two objects
+    glm::vec3 connectionAxis = glm::vec3(0.0f, 1.0f, 0.0f);
+    glm::vec3 axisPoint = (teapotCenter + monkeyCenter) * 0.5f;
 
-      glm::mat4 mvp = projection * view * model;
-      shader.setMat4("uModel", model);
-      shader.setMat4("uMVP", mvp);
-      teapot.draw();
-    }
+    glm::mat4 axisRotation = rotateAroundAxisThroughPoint(axisPoint, connectionAxis, orbitAngle);
 
-    glm::mat4 model = glm::mat4(1.0f);
-    // Apply jump physics to camera
-    camera.setYPosition(cP);
-    if(jump) {
-      cV += A * deltaTime;
-      cP += cV * deltaTime;
-      if(cP <= 1.0f) {
-        jump = false;
-        cP = 1.0f;
-      }
-    }
-    // Apply jump physics to main teapot
-    if(teapotJump) {
-      tV += A * deltaTime;
-      tP += tV * deltaTime;
-      if(tP <= 0.0f) {
-        // Play sound upon hitting ground
-        Mix_PlayChannel(-1, jumpSound, 0);
-        teapotJump = false;
-        // Cause smaller teapots to jump
-        bounce = true;
-        tP = 0.0f;
-        // Transfer reduced amount of main teapot velocity to smaller teapots
-        oV = -tV * 0.8;
-      }
-    }
-    // Apply jump physics to smaller teapots
-    if(bounce) {
-      oV += A * deltaTime;
-      oP += oV * deltaTime;
-      if(oP <= 0.0f) {
-        // Play sound upon hitting ground
-        Mix_PlayChannel(-1, jumpSound, 0);
-        bounce = false;
-        std::cout << std::abs(oV) << ' ' << (std::abs(oV) > 0.05f) << std::endl;
-        // Cause main teapot to jump if smaller teapot velocity is over a minimum threshold
-        if(std::abs(oV) > 1) {
-          teapotJump = true;
-          // Transfer dampened amount of main teapot velocity to smaller teapots
-          tV = -oV * 0.6;
-        } else {
-          // When the bouncing stops play a fun sound
-          Mix_PlayChannel(-1, strangeSound, 0);
-        }
-        oP = 0.0f;
-      }
-    }
+    glm::vec4 rotatedTeapotCenter4 = axisRotation * glm::vec4(teapotCenter, 1.0f);
+    glm::vec4 rotatedMonkeyCenter4 = axisRotation * glm::vec4(monkeyCenter, 1.0f);
+
+    glm::vec3 rotatedTeapotCenter = glm::vec3(rotatedTeapotCenter4);
+    glm::vec3 rotatedMonkeyCenter = glm::vec3(rotatedMonkeyCenter4);
 
     // Translate, rotate, and scale main teapot
-    model = glm::translate(model, glm::vec3(0.0f, tP, 0.0f));
-    model = glm::rotate(model, glm::radians(rotationAngle), glm::vec3(0.0f, 1.0f, 0.0f));
-    model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));
+    glm::mat4 teapotModel = glm::mat4(1.0f);
+    teapotModel = glm::translate(teapotModel, rotatedTeapotCenter);
+    teapotModel = glm::rotate(teapotModel, glm::radians(rotationAngle), glm::vec3(0.0f, 1.0f, 0.0f));
+    teapotModel = glm::scale(teapotModel, glm::vec3(0.5f, 0.5f, 0.5f));
 
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     // Render the main teapot
-    glm::mat4 mvp = projection * view * model;
-    shader.setMat4("uModel", model);
-    shader.setMat4("uMVP", mvp);
+    glm::mat4 teapotMVP = projection * view * teapotModel;
+    shader.setMat4("uModel", teapotModel);
+    shader.setMat4("uMVP", teapotMVP);
     teapot.draw();
 
-    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    // model = glm::mat4(1.0f);
-    // model = glm::translate(model, sphere1.getSphereCenter());
-    // //model = glm::scale(model, glm::vec3(2.5f, 2.5f, 2.5f));
+    glm::mat4 monkeyModel = glm::mat4(1.0f);
+    monkeyModel = glm::translate(monkeyModel, rotatedMonkeyCenter);
+    monkeyModel = glm::rotate(monkeyModel, glm::radians(rotationAngle), glm::vec3(0.0f, 1.0f, 0.0f));
+    monkeyModel = glm::scale(monkeyModel, glm::vec3(0.8f, 0.8f, 0.8f));
 
-    // mvp = projection * view * model;
-    // shader.setMat4("uModel", model);
-    // shader.setMat4("uMVP", mvp);
-    // cube.draw();
-
-    // model = glm::mat4(1.0f);
-    // model = glm::translate(model, sphere2.getSphereCenter());
-
-    // mvp = projection * view * model;
-    // shader.setMat4("uModel", model);
-    // shader.setMat4("uMVP", mvp);
-    // cube.draw();
-    // glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glm::mat4 monkeyMVP = projection * view * monkeyModel;
+    shader.setMat4("uModel", monkeyModel);
+    shader.setMat4("uMVP", monkeyMVP);
+    monkey.draw();
 
     //Swap the SDL window
     SDL_GL_SwapWindow(window);
   }
 
   // Cleanup SDL
+  Mix_FreeChunk(jumpSound);
+  Mix_FreeChunk(strangeSound);
+  Mix_CloseAudio();
   SDL_GL_DeleteContext(glContext);
   SDL_DestroyWindow(window);
   IMG_Quit();
